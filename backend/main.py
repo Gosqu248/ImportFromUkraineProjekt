@@ -9,7 +9,11 @@ fig = None
 def on_button_click():
     method = selected_method.get()
     year = int(selected_end_year.get())
-    prediction.plot_predictions(year, method)
+
+    fig = prediction.plot_predictions(end_year=year, model_type=method)
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas.draw()
+    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 root = tk.Tk()
 root.title("Prediction app")
@@ -39,12 +43,6 @@ option_year_menu.pack(pady=10)
 # Dodanie przycisku
 button = tk.Button(root, text="Predict", command=on_button_click)
 button.pack(pady=10)
-
-fig = prediction.plot_predictions(end_year=2026, model_type='Linear')
-
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.draw()
-canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 # Uruchomienie pętli głównej
 root.mainloop()
