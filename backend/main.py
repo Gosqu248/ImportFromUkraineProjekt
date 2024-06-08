@@ -5,11 +5,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import prediction
 
-fig = None
 def on_button_click():
     method = selected_method.get()
     year = int(selected_end_year.get())
 
+    global canvas
+    if 'canvas' in globals():
+        canvas.get_tk_widget().destroy()
     fig = prediction.plot_predictions(end_year=year, model_type=method)
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()

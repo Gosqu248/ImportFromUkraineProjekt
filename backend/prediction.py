@@ -1,3 +1,4 @@
+import mplcursors
 import pandas as pd
 from db_config import get_db_engine
 from sklearn.linear_model import LinearRegression
@@ -89,7 +90,7 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     # Actual data
     x = grouped['rok'] + grouped['miesiac'] / 12
     y = grouped['Wartosc']
-    ax.plot(x, y, 'b-', label='Rzeczywiste dane')
+    line1, = ax.plot(x, y, 'b-', label='Rzeczywiste dane')
 
     # Add predicted values to data
     x_pred = []
@@ -97,14 +98,14 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     for (year, month), value in predicted_sums.items():
         x_pred.append(year + month / 12)
         y_pred.append(value)
-    ax.plot(x_pred, y_pred, 'r-', label='Przewidywane wartości')
+    line2, = ax.plot(x_pred, y_pred, 'r-', label='Przewidywane wartości')
 
     # Add regression line for entire period
     x_full = pd.DataFrame(
         [[year, month] for year in range(int(grouped['rok'].min()), end_year + 1) for month in range(1, 13)],
         columns=['rok', 'miesiac'])
     y_pred_full = model.predict(x_full)
-    ax.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
+    line3, = ax.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
 
     # Adjust plot
     ax.set_xlabel('Rok')
@@ -116,6 +117,11 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     ax.grid(True)
     ax.xaxis.set_major_locator(plt.MultipleLocator(1))
     plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.15)
+
+    # Add interactive cursor
+    cursor = mplcursors.cursor([line1, line2, line3], hover=True)
+    cursor.connect("add",
+                   lambda sel: sel.annotation.set_text(f'Rok: {sel.target[0]:.1f}\nWartość: {sel.target[1]:.1f}'))
 
     return fig
 
