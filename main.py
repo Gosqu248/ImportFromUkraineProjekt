@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-import backend.prediction
+import backend.sum_prediction
 
 
 # Funkcja wywoływana po naciśnięciu przycisku

@@ -11,7 +11,7 @@ engine = get_db_engine()
 
 def millions(x, pos):
     'The two args are the value and tick position'
-    return '%1.0f mln' % (x * 1e-9)  # Change the scale factor to 1e-9
+    return '%1.0f mln' % (x * 1e-6)  # Change the scale factor to 1e-9
 
 formatter = FuncFormatter(millions)
 
