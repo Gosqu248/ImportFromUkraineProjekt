@@ -36,6 +36,7 @@ def prediction_5_items(year=2024, model_type='Linear', start_year=2023, start_mo
     X = grouped['rok'].values.reshape(-1, 1)  # Reshape necessary for single feature
     y = grouped['Wartosc'].values
 
+
     # Split the data into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
@@ -62,7 +63,7 @@ def prediction_5_items(year=2024, model_type='Linear', start_year=2023, start_mo
     r2 = r2_score(y_test, y_pred)
 
     # Predict for the given year
-    prediction_data = {'rok': [year] * len(grouped.index), 'SITC-R4.nazwa': grouped['SITC-R4.nazwa']}
+    prediction_data = {'rok': X_test.flatten(), 'SITC-R4.nazwa': grouped.loc[X_test.flatten() - grouped['rok'].min(), 'SITC-R4.nazwa']}
     predictions_df = pd.DataFrame(prediction_data)
     predicted_values = model.predict(predictions_df['rok'].values.reshape(-1, 1))
 
