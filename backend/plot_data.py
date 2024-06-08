@@ -3,18 +3,25 @@ from db_config import get_db_engine
 import mplcursors
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter, MaxNLocator
+
 
 # Uzyskaj obiekt engine połączenia z bazy danych
 engine = get_db_engine()
 
-# Wykonaj zapytanie SQL, aby pobrać dane z tabeli importUkraine.data
-query = "SELECT * FROM import_ukraine.data"
+def millions(x, pos):
+    'The two args are the value and tick position'
+    return '%1.0f mln' % (x * 1e-9)  # Change the scale factor to 1e-9
 
-# Wczytaj dane do DataFrame
-df = pd.read_sql_query(query, engine)
-
+formatter = FuncFormatter(millions)
 
 def plot_year_values():
+    # Wykonaj zapytanie SQL, aby pobrać dane z tabeli importUkraine.data
+    query = "SELECT * FROM import_ukraine.data"
+
+    # Wczytaj dane do DataFrame
+    df = pd.read_sql_query(query, engine)
+
     # Convert 'Wartosc' and 'miesiac' columns to numeric
     df['Wartosc'] = pd.to_numeric(df['Wartosc'], errors='coerce')
     month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
@@ -25,7 +32,7 @@ def plot_year_values():
     grouped = df.groupby(['rok', 'miesiac']).sum().reset_index()
 
     # Tworzenie wykresu
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
     x = grouped['rok'] + grouped['miesiac'] / 12
     line, = plt.plot(x, grouped['Wartosc'], label='Rzeczywiste dane')  # Removed marker='o'
 
@@ -44,11 +51,19 @@ def plot_year_values():
 
     plt.grid(True)
 
+    plt.gca().yaxis.set_major_formatter(formatter)
+
+
     # Add interactive cursor
     cursor = mplcursors.cursor(line, hover=True)
-    cursor.connect("add", lambda sel: sel.annotation.set_text(f'Rok: {sel.target[0]:.1f}\nWartość: {sel.target[1]:.1f}'))
+    cursor.connect("add", lambda sel: sel.annotation.set_text(
+        f'Rok: {int(sel.target[0])}\nMiesiąc: {int((sel.target[0] % 1) * 12) + 1}\nWartość: {sel.target[1]:.1f}'))
 
-    plt.show()
+    # plt.show()  # Commented out to prevent displaying the plot
+
+    return fig
 
 
-plot_year_values()
+# Example usage of function
+# fig = plot_year_values()
+# plt.show(fig)  # Uncomment to display the plot
