@@ -1,11 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 import prediction
 
+fig = None
 def on_button_click():
     method = selected_method.get()
     year = int(selected_end_year.get())
-    prediction.plot_predictions(2026, method)
+    prediction.plot_predictions(year, method)
 
 root = tk.Tk()
 root.title("Prediction app")
@@ -35,6 +39,12 @@ option_year_menu.pack(pady=10)
 # Dodanie przycisku
 button = tk.Button(root, text="Predict", command=on_button_click)
 button.pack(pady=10)
+
+fig = prediction.plot_predictions(end_year=2026, model_type='Linear')
+
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.draw()
+canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 # Uruchomienie pętli głównej
 root.mainloop()

@@ -84,12 +84,12 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
 
     # Create plot
-    plt.figure(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
 
     # Actual data
     x = grouped['rok'] + grouped['miesiac'] / 12
     y = grouped['Wartosc']
-    plt.plot(x, y, 'b-', label='Rzeczywiste dane')
+    ax.plot(x, y, 'b-', label='Rzeczywiste dane')
 
     # Add predicted values to data
     x_pred = []
@@ -97,23 +97,27 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     for (year, month), value in predicted_sums.items():
         x_pred.append(year + month / 12)
         y_pred.append(value)
-    plt.plot(x_pred, y_pred, 'r-', label='Przewidywane wartości')
+    ax.plot(x_pred, y_pred, 'r-', label='Przewidywane wartości')
 
     # Add regression line for entire period
-    x_full = pd.DataFrame([[year, month] for year in range(int(grouped['rok'].min()), end_year + 1) for month in range(1, 13)], columns=['rok', 'miesiac'])
+    x_full = pd.DataFrame(
+        [[year, month] for year in range(int(grouped['rok'].min()), end_year + 1) for month in range(1, 13)],
+        columns=['rok', 'miesiac'])
     y_pred_full = model.predict(x_full)
-    plt.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
+    ax.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
 
     # Adjust plot
-    plt.xlabel('Rok')
-    plt.gca().yaxis.set_label_position("right")
-    plt.ylabel('Suma wartości', rotation=0, labelpad=15)
-    plt.title(f'Porównanie sumy wartości w danych latach z przewidywaniami: {model_type} regression', fontweight='bold')
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), fancybox=True, shadow=True, ncol=5)
-    plt.grid(True)
-    plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.set_xlabel('Rok')
+    ax.yaxis.set_label_position("right")
+    ax.set_ylabel('Suma wartości', rotation=0, labelpad=15)
+    ax.set_title(f'Porównanie sumy wartości w danych latach z przewidywaniami: {model_type} regression',
+                 fontweight='bold')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), fancybox=True, shadow=True, ncol=5)
+    ax.grid(True)
+    ax.xaxis.set_major_locator(plt.MultipleLocator(1))
     plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.15)
-    plt.show()
+
+    return fig
 
 # Example usage of function
 #plot_predictions(2026, 'Linear')
