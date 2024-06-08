@@ -1,19 +1,24 @@
-import pandas as pd
-from db_config import get_db_engine
+import tkinter as tk
+from tkinter import messagebox
+import prediction
 
-# Uzyskaj obiekt engine połączenia z bazy danych
-engine = get_db_engine()
 
-# Wykonaj zapytanie SQL, aby pobrać dane z tabeli importUkraine.data
-query = "SELECT * FROM import_ukraine.data"
+# Funkcja wywoływana po naciśnięciu przycisku
+def on_button_click():
+    messagebox.showinfo("Informacja", "Przycisk został naciśnięty!")
 
-# Wczytaj dane do DataFrame
-df = pd.read_sql_query(query, engine)
+# Tworzenie głównego okna aplikacji
+root = tk.Tk()
+root.title("Predictions App")
+root.geometry("800x800")
 
-print("Nazwy column:")
-for column in df.columns:
-    print(column)
+# Dodanie etykiety
+label = tk.Label(root, text="Witaj w mojej aplikacji!")
+label.pack(pady=10)
 
-print("\n\nPierwsze 5 wierszy:")
-print(df.head())
+# Dodanie przycisku
+button = tk.Button(root, text="Kliknij mnie", command=on_button_click)
+button.pack(pady=10)
 
+# Uruchomienie pętli głównej
+root.mainloop()
