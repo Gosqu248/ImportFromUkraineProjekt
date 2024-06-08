@@ -116,4 +116,4 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     plt.show()
 
 # Example usage of function
-plot_predictions(2026, 'Linear')
+#plot_predictions(2026, 'Linear')
