@@ -33,7 +33,7 @@ options_method = ["DecisionTree", "RandomForest", "KNeighbors", "Linear"]
 selected_end_year = tk.StringVar(root)
 selected_end_year.set("2026")
 
-options_end_year = ["2023", "2024", "2025", "2026"]
+options_end_year = [ "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
 
 # Dodanie rozwijanego menu wyboru
 option_method_menu = tk.OptionMenu(root, selected_method, *options_method)
