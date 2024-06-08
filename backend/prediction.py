@@ -1,14 +1,13 @@
+import mplcursors
 import pandas as pd
 from db_config import get_db_engine
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
-from matplotlib.dates import YearLocator
+import matplotlib.ticker as ticker
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from matplotlib.ticker import FuncFormatter, MaxNLocator
 import numpy as np
 
 # Uzyskaj obiekt engine połączenia z bazy danych
@@ -19,18 +18,13 @@ query = "SELECT * FROM import_ukraine.data"
 
 # Wczytaj dane do DataFrame
 df = pd.read_sql_query(query, engine)
+
 df = df.dropna()
 
 # Convert 'miesiac' column to numerical format
 month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
               'Lipiec': 7, 'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
 df['miesiac'] = df['miesiac'].map(month_dict)
-
-def millions(x, pos):
-    'The two args are the value and tick position'
-    return '%1.0f mln' % (x * 1e-9)  # Change the scale factor to 1e-9
-
-formatter = FuncFormatter(millions)
 
 def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'):
     predictions = {}
@@ -39,7 +33,7 @@ def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'
     df_filtered = df[df['rok'] <= end_year]
 
     # Convert 'Wartosc' column to numeric
-    df_filtered['Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
+    df_filtered.loc[:, 'Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
 
     # Group by year and month and calculate sum
     grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
@@ -64,19 +58,10 @@ def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'
         raise ValueError(f"Invalid model_type: {model_type}")
     model.fit(X_train, y_train)
 
-    # Predict on test data
-    y_pred = model.predict(X_test)
-
-    # Evaluate the model
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, y_pred)
-
     # Make prediction for each month of each year
     year = start_year
     month = start_month
-    while year < end_year or (year == end_year and month <= 1):  # Adjusted to stop at January of end_year
+    while year < end_year or (year == end_year and month <= 12):
         prediction_data = pd.DataFrame([[year, month]], columns=['rok', 'miesiac'])
         prediction = model.predict(prediction_data)
         predictions[(year, month)] = prediction[0]
@@ -86,13 +71,9 @@ def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'
             month = 1
             year += 1
 
-    # Display results
-    print(f'Mean Absolute Error: {mae:.2f}')
-    print(f'Mean Squared Error: {mse:.2f}')
-    print(f'Root Mean Squared Error: {rmse:.2f}')
-    print(f'R2 Score: {r2:.2f}')
-
     return predictions, model
+
+# Example usage of function
 
 def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month=3):
     # Get predicted sum for each month of each year and regression model
@@ -103,48 +84,46 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     df_filtered['Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
     grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
 
-    # Filter data for plot to only include data from 2020 onwards
-    grouped_plot = grouped[grouped['rok'] >= 2020]
-
-    plt.figure(figsize=(25, 20))
+    # Create plot
+    fig, ax = plt.subplots(figsize=(10, 6))
 
     # Actual data
-    x = grouped_plot['rok'] + grouped_plot['miesiac'] / 12
-    y = grouped_plot['Wartosc']
-    plt.plot(x, y, 'b-', label='Rzeczywiste dane')
+    x = grouped['rok'] + grouped['miesiac'] / 12
+    y = grouped['Wartosc']
+    line1, = ax.plot(x, y, 'b-', label='Rzeczywiste dane')
 
-    # Add regression line for the period from 2020 onwards
-    x_full = pd.DataFrame([[year, month] for year in range(2020, end_year) for month in range(1, 13)],
-                          columns=['rok', 'miesiac'])
+    # Add predicted values to data
+    x_pred = []
+    y_pred = []
+    for (year, month), value in predicted_sums.items():
+        x_pred.append(year + month / 12)
+        y_pred.append(value)
+    line2, = ax.plot(x_pred, y_pred, 'r-', label='Przewidywane wartości')
+
+    # Add regression line for entire period
+    x_full = pd.DataFrame(
+        [[year, month] for year in range(int(grouped['rok'].min()), end_year + 1) for month in range(1, 13)],
+        columns=['rok', 'miesiac'])
     y_pred_full = model.predict(x_full)
-    plt.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
-
-    # Add predictions from March 2023 onwards
-    predicted_x = np.array([year + month / 12 for (year, month) in predicted_sums.keys()])
-    predicted_y = np.array(list(predicted_sums.values()))
-    plt.plot(predicted_x, predicted_y, 'r--', label='Przewidywane dane')
+    line3, = ax.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
 
     # Adjust plot
-    plt.xlabel('Rok', fontsize=12)
-    plt.ylabel('Suma wartości', rotation=90, labelpad=15, fontsize=12)
-    plt.title(f'Porównanie sumy wartości w danych latach z przewidywaniami: {model_type} regression', fontweight='bold')
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12), fancybox=True, shadow=True, ncol=5)
-    plt.grid(True)
-    plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))  # Set maximum number of x-axis labels
+    ax.set_xlabel('Rok')
+    ax.yaxis.set_label_position("right")
+    ax.set_ylabel('Suma wartości', rotation=0, labelpad=15)
+    ax.set_title(f'Porównanie sumy wartości w danych latach z przewidywaniami: {model_type} regression',
+                 fontweight='bold')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), fancybox=True, shadow=True, ncol=5)
+    ax.grid(True)
+    ax.xaxis.set_major_locator(plt.MultipleLocator(1))
     plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.15)
 
-    # Move y-axis values to right side
-    plt.gca().yaxis.tick_right()
-    plt.gca().yaxis.set_label_position("left")
+    # Add interactive cursor
+    cursor = mplcursors.cursor([line1, line2, line3], hover=True)
+    cursor.connect("add",
+                   lambda sel: sel.annotation.set_text(f'Rok: {sel.target[0]:.1f}\nWartość: {sel.target[1]:.1f}'))
 
-    # Increase the size of the y-axis values
-    plt.tick_params(axis='y', labelsize=10)
-    plt.tick_params(axis='x', labelsize=10)
-
-    # Format y-axis labels to display in millions
-    plt.gca().yaxis.set_major_formatter(formatter)
-
-    plt.show()
+    return fig
 
 # Example usage of function
-plot_predictions(2025, 'DecisionTree')
+#plot_predictions(2026, 'Linear')
