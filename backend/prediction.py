@@ -5,9 +5,9 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
 import matplotlib.ticker as ticker
-import numpy as np
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from sklearn.ensemble import GradientBoostingRegressor
+import numpy as np
 
 # Uzyskaj obiekt engine połączenia z bazy danych
 engine = get_db_engine()
@@ -18,25 +18,33 @@ query = "SELECT * FROM import_ukraine.data"
 # Wczytaj dane do DataFrame
 df = pd.read_sql_query(query, engine)
 
+df = df.dropna()
 
+# Convert 'miesiac' column to numerical format
+month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
+              'Lipiec': 7, 'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
+df['miesiac'] = df['miesiac'].map(month_dict)
 
-def predict_sum_for_years(years, model_type='Linear'):
+def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'):
     predictions = {}
-    # Filter data up to max year in years
-    df_filtered = df[df['rok'] <= max(years)]
+
+    # Filter data up to end_year
+    df_filtered = df[df['rok'] <= end_year]
 
     # Convert 'Wartosc' column to numeric
-    df_filtered['Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
+    df_filtered.loc[:, 'Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
 
-    # Group by year and calculate sum
-    grouped = df_filtered.groupby('rok').sum().reset_index()
+    # Group by year and month and calculate sum
+    grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
 
     # Prepare data for regression
-    X = grouped['rok'].values.reshape(-1, 1)
-    y = grouped['Wartosc'].values
+    X = grouped[['rok', 'miesiac']]
+    y = grouped['Wartosc']
+
+    # Split the data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
     # Fit regression model
-    # Fit linear regression model
     if model_type == 'Linear':
         model = LinearRegression()
     elif model_type == 'DecisionTree':
@@ -47,57 +55,65 @@ def predict_sum_for_years(years, model_type='Linear'):
         model = KNeighborsRegressor()
     else:
         raise ValueError(f"Invalid model_type: {model_type}")
-    model.fit(X, y)
+    model.fit(X_train, y_train)
 
-    # Make prediction for each year
-    for year in years:
-        prediction = model.predict(np.array([[year]]))
-        predictions[year] = prediction[0]
-        print(f"Przewidywana suma dla {year} roku: {prediction[0]}")
+    # Make prediction for each month of each year
+    year = start_year
+    month = start_month
+    while year < end_year or (year == end_year and month <= 12):
+        prediction_data = pd.DataFrame([[year, month]], columns=['rok', 'miesiac'])
+        prediction = model.predict(prediction_data)
+        predictions[(year, month)] = prediction[0]
+        print(f"Przewidywana suma dla {month} miesiąca {year} roku: {prediction[0]}")
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
 
     return predictions, model
 
+# Example usage of function
 
-def plot_predictions(end_year, model_type='Linear'):
-    # Create a list of years from 2024 to end_year
-    years = list(range(2024, end_year + 1))
+def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month=3):
+    # Get predicted sum for each month of each year and regression model
+    predicted_sums, model = predict_sum_for_years(start_year, start_month, end_year, model_type)
 
-    # Pobierz przewidywaną wartość dla danego roku oraz model regresji liniowej
-    predicted_sums, model = predict_sum_for_years(years, model_type)
-
-    # Przygotowanie danych do wykresu
+    # Prepare data for plot
     df_filtered = df[df['rok'] <= end_year]
     df_filtered['Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
-    grouped = df_filtered.groupby('rok').sum().reset_index()
+    grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
 
-    # Tworzenie wykresu
+    # Create plot
     plt.figure(figsize=(10, 6))
 
-    # Dodanie linii regresji
-    future_years = np.arange(2010, end_year + 1).reshape(-1, 1)
-    future_predictions = model.predict(future_years)
-    plt.plot(future_years, future_predictions, linestyle='-', color='green', label='Linia regresji')
+    # Actual data
+    x = grouped['rok'] + grouped['miesiac'] / 12
+    y = grouped['Wartosc']
+    plt.plot(x, y, 'b-', label='Rzeczywiste dane')
 
-    # Dodanie przewidywanej wartości do danych
-    for year in years:
-        all_years = np.append(grouped['rok'].values, year)
-        all_values = np.append(grouped['Wartosc'].values, predicted_sums[year])
-        plt.plot(all_years, all_values, linestyle='--', color='orange', marker='o', label=f'Przewidywana wartość na rok {year}')
+    # Add predicted values to data
+    x_pred = []
+    y_pred = []
+    for (year, month), value in predicted_sums.items():
+        x_pred.append(year + month / 12)
+        y_pred.append(value)
+    plt.plot(x_pred, y_pred, 'r-', label='Przewidywane wartości')
 
-    # Rzeczywiste dane
-    plt.plot(grouped['rok'], grouped['Wartosc'], marker='o', label='Rzeczywiste dane')
+    # Add regression line for entire period
+    x_full = pd.DataFrame([[year, month] for year in range(int(grouped['rok'].min()), end_year + 1) for month in range(1, 13)], columns=['rok', 'miesiac'])
+    y_pred_full = model.predict(x_full)
+    plt.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
 
-    # Dostosowanie wykresu
+    # Adjust plot
     plt.xlabel('Rok')
     plt.gca().yaxis.set_label_position("right")
-    plt.ylabel('Suma wartości', rotation=180, labelpad=15)
+    plt.ylabel('Suma wartości', rotation=0, labelpad=15)
     plt.title(f'Porównanie sumy wartości w danych latach z przewidywaniami: {model_type} regression', fontweight='bold')
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), fancybox=True, shadow=True, ncol=5)
     plt.grid(True)
     plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(1))
-    plt.subplots_adjust(left=0.1, right=0.9)
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.15)
     plt.show()
 
-
-# Przykładowe użycie funkcji
+# Example usage of function
 plot_predictions(2026, 'Linear')
