@@ -5,6 +5,7 @@ import sum_prediction
 import sum_data
 import fav_item_data  # Importuj plik fav_item_data
 import fav_item_predictions
+from backend import xd, xd3
 
 
 def on_actual_data_button_click():
@@ -44,11 +45,12 @@ def on_top_items_button_click():
 def on_top_items_predictions_button_click():
     method = selected_method_top.get()
     year = int(selected_end_year_top.get())
+    category_name = text_input.get()
 
     global canvas
     if 'canvas' in globals():
         canvas.get_tk_widget().destroy()
-    fig = fav_item_predictions.plot_prediction_items(year=year, model_type=method)  # Wywołanie plot_top_items z fav_item_data
+    fig = xd3.plot_predictions(end_year=year, model_type=method, category_name=category_name)  # Wywołanie plot_top_items z fav_item_data
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -119,6 +121,9 @@ option_method_menu.pack(pady=10)
 # Dodanie rozwijanego menu wyboru dla roku końcowego
 option_end_year_menu = tk.OptionMenu(root, selected_end_year_top, *options_end_year)
 option_end_year_menu.pack(pady=10)
+
+text_input = tk.Entry(root)
+text_input.pack()
 
 # Dodanie przycisku
 button = tk.Button(root, text="Predict", command=on_top_items_predictions_button_click)

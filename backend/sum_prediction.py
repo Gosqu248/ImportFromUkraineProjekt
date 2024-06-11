@@ -36,79 +36,84 @@ formatter = FuncFormatter(millions)
 import numpy as np
 
 def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'):
+    global df
     predictions = {}
 
-    # Filter data up to end_year
-    df_filtered = df[df['rok'] <= end_year]
+    for year in range(start_year, end_year + 1):
+        # Filter data up to current year
+        df_filtered = df[df['rok'] <= year]
 
-    # Convert 'Wartosc' column to numeric
-    df_filtered.loc[:, 'Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
+        # Convert 'Wartosc' column to numeric
+        df_filtered.loc[:, 'Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
 
-    # Group by year and month and calculate sum
-    grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
+        # Group by year and month and calculate sum
+        grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
 
-    # Prepare data for regression
-    X = grouped[['rok', 'miesiac']]
-    y = grouped['Wartosc']
+        # Prepare data for regression
+        X = grouped[['rok', 'miesiac']]
+        y = grouped['Wartosc']
 
-    # Split the data into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+        # Split the data into training and test sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
 
-    # Fit regression model
-    if model_type == 'Linear':
-        model = LinearRegression()
-    elif model_type == 'DecisionTree':
-        model = DecisionTreeRegressor(random_state=42)
-    elif model_type == 'RandomForest':
-        model = RandomForestRegressor(random_state=42)
-    elif model_type == 'KNeighbors':
-        model = KNeighborsRegressor()
-    else:
-        raise ValueError(f"Invalid model_type: {model_type}")
-    model.fit(X_train, y_train)
+        # Fit regression model
+        if model_type == 'Linear':
+            model = LinearRegression()
+        elif model_type == 'DecisionTree':
+            model = DecisionTreeRegressor(random_state=42)
+        elif model_type == 'RandomForest':
+            model = RandomForestRegressor(random_state=42)
+        elif model_type == 'KNeighbors':
+            model = KNeighborsRegressor()
+        else:
+            raise ValueError(f"Invalid model_type: {model_type}")
+        model.fit(X_train, y_train)
 
-    # Predict on test data
-    y_pred = model.predict(X_test)
+        # Predict on test data
+        y_pred = model.predict(X_test)
 
+        # Evaluate the model
+        mae = mean_absolute_error(y_test, y_pred)
+        mse = mean_squared_error(y_test, y_pred)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(y_test, y_pred)
 
+        # Make prediction for each month of each year
+        month = start_month if year == start_year else 1
+        while year < end_year or (year == end_year and month <= 12):
+            prediction_data = pd.DataFrame([[year, month]], columns=['rok', 'miesiac'])
+            prediction = model.predict(prediction_data)
 
-    # Evaluate the model
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, y_pred)
+            # Add random noise to prediction
+            noise = np.random.normal(0, 1)
+            prediction = prediction + noise
 
-    # Make prediction for each month of each year
-    year = start_year
-    month = start_month
-    while year < end_year or (year == end_year and month <= 12):
-        prediction_data = pd.DataFrame([[year, month]], columns=['rok', 'miesiac'])
-        prediction = model.predict(prediction_data)
+            predictions[(year, month)] = prediction[0]
+            print(f"Przewidywana suma dla {month} miesiąca {year} roku: {prediction[0]}")
+            month += 1
+            if month > 12:
+                month = 1
+                year += 1
 
-        # Add random noise to prediction
-        noise = np.random.normal(0, 1)
-        prediction = prediction + noise
+        # Display results
+        print(f'Mean Absolute Error: {mae:.2f}')
+        print(f'Mean Squared Error: {mse:.2f}')
+        print(f'Root Mean Squared Error: {rmse:.2f}')
+        print(f'R2 Score: {r2:.2f}')
 
-        predictions[(year, month)] = prediction[0]
-        print(f"Przewidywana suma dla {month} miesiąca {year} roku: {prediction[0]}")
-        month += 1
-        if month > 12:
-            month = 1
-            year += 1
-
-    # Display results
-    print(f'Mean Absolute Error: {mae:.2f}')
-    print(f'Mean Squared Error: {mse:.2f}')
-    print(f'Root Mean Squared Error: {rmse:.2f}')
-    print(f'R2 Score: {r2:.2f}')
-
+        # Add predictions to the original dataframe for the next iteration
+        for (year, month), prediction in predictions.items():
+            df = pd.concat([df, pd.DataFrame({'rok': [year], 'miesiac': [month], 'Wartosc': [prediction]})],
+                           ignore_index=True)
     return predictions, model, r2
 
 # Example usage of function
 
 
-def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month=3):
+def plot_predictions(end_year, model_type='Linear'):
     end_year = end_year - 1
+    start_year = 2023
+    start_month = 3
 
     # Get predicted sum for each month of each year and regression model
     predicted_sums, model, r2 = predict_sum_for_years(start_year, start_month, end_year, model_type)
@@ -171,12 +176,12 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
     cursor.connect("add",
                    lambda sel: sel.annotation.set_text(f'Rok: {int(sel.target[0])}\nMiesiąc: {int((sel.target[0] % 1) * 12) + 1}\nWartość: {sel.target[1]:,.0f}'))
 
-    # plt.show()  # Commented out to prevent displaying the plot
+    #plt.show()  # Commented out to prevent displaying the plot
 
     return fig
 
 
 # Example usage of function
-#plot_predictions(2026, 'Linear')
+#plot_predictions(2026, 'RandomForest')
 
 

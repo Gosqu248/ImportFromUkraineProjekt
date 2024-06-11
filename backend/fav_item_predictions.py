@@ -115,3 +115,5 @@ def plot_prediction_items(year=2025, model_type='Linear'):
 
     # Return the figure
     return fig
+
+plot_prediction_items(2025, 'Linear')
