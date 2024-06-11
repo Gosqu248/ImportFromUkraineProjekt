@@ -20,7 +20,7 @@ query = "SELECT * FROM import_ukraine.data"
 # Wczytaj dane do DataFrame
 df = pd.read_sql_query(query, engine)
 
-df = df.dropna()
+df = df.dropna(axis=1, how='all')
 
 # Convert 'miesiac' column to numerical format
 month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
@@ -32,6 +32,8 @@ def millions(x, pos):
     return '%1.0f mln' % (x * 1e-9)  # Change the scale factor to 1e-9
 
 formatter = FuncFormatter(millions)
+
+import numpy as np
 
 def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'):
     predictions = {}
@@ -50,15 +52,15 @@ def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'
     y = grouped['Wartosc']
 
     # Split the data into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
 
     # Fit regression model
     if model_type == 'Linear':
         model = LinearRegression()
     elif model_type == 'DecisionTree':
-        model = DecisionTreeRegressor()
+        model = DecisionTreeRegressor(random_state=42)
     elif model_type == 'RandomForest':
-        model = RandomForestRegressor()
+        model = RandomForestRegressor(random_state=42)
     elif model_type == 'KNeighbors':
         model = KNeighborsRegressor()
     else:
@@ -67,6 +69,8 @@ def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'
 
     # Predict on test data
     y_pred = model.predict(X_test)
+
+
 
     # Evaluate the model
     mae = mean_absolute_error(y_test, y_pred)
@@ -80,6 +84,11 @@ def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'
     while year < end_year or (year == end_year and month <= 12):
         prediction_data = pd.DataFrame([[year, month]], columns=['rok', 'miesiac'])
         prediction = model.predict(prediction_data)
+
+        # Add random noise to prediction
+        noise = np.random.normal(0, 1)
+        prediction = prediction + noise
+
         predictions[(year, month)] = prediction[0]
         print(f"Przewidywana suma dla {month} miesiąca {year} roku: {prediction[0]}")
         month += 1
@@ -114,16 +123,18 @@ def plot_predictions(end_year, model_type='Linear', start_year=2023, start_month
         (grouped['rok'] >= 2020) & ((grouped['rok'] < 2023) | ((grouped['rok'] == 2023) & (grouped['miesiac'] <= 3)))]
     fig, ax = plt.subplots(figsize=(25, 20))
 
-    # Actual data
-    x = grouped_plot['rok'] + grouped_plot['miesiac'] / 12
-    y = grouped_plot['Wartosc']
-    line1, = ax.plot(x, y, 'b-', label='Rzeczywiste dane')
+
 
     # Add regression line for the period from 2020 onwards
     x_full = pd.DataFrame([[year, month] for year in range(2020, end_year + 1) for month in range(1, 13)],
                           columns=['rok', 'miesiac'])
     y_pred_full = model.predict(x_full)
     line2, = ax.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
+
+    # Actual data
+    x = grouped_plot['rok'] + grouped_plot['miesiac'] / 12
+    y = grouped_plot['Wartosc']
+    line1, = ax.plot(x, y, 'b-', label='Rzeczywiste dane')
 
     # Add predictions from March 2023 onwards
     predicted_x = np.array([year + month / 12 for (year, month) in predicted_sums.keys()])
