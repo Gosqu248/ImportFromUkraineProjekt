@@ -19,13 +19,12 @@ def on_actual_data_button_click():
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 def on_button_click():
-    method = selected_method.get()
     year = int(selected_end_year.get())
 
     global canvas
     if 'canvas' in globals():
         canvas.get_tk_widget().destroy()
-    fig = sum_prediction.plot_predictions(end_year=year, model_type=method)
+    fig = sum_prediction.plot_prediction(end_year=year)
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -66,20 +65,10 @@ actual_data_button.pack(pady=10)
 label = tk.Label(root, text="Wybierz metode predykcji!")
 label.pack(pady=10)
 
-selected_method = tk.StringVar(root)
-selected_method.set("Linear")
-
-# Lista opcji do wyboru
-options_method = ["DecisionTree", "RandomForest", "KNeighbors", "Linear"]
-
 selected_end_year = tk.StringVar(root)
 selected_end_year.set("2026")
 
 options_end_year = ["2024", "2025", "2026", "2027", "2028", "2029", "2030"]
-
-# Dodanie rozwijanego menu wyboru dla metody predykcji
-option_method_menu = tk.OptionMenu(root, selected_method, *options_method)
-option_method_menu.pack(pady=10)
 
 # Dodanie rozwijanego menu wyboru dla roku końcowego
 option_end_year_menu = tk.OptionMenu(root, selected_end_year, *options_end_year)

@@ -1,187 +1,130 @@
-import mplcursors
+import numpy as np
 import pandas as pd
-from db_config import get_db_engine
-from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.neighbors import KNeighborsRegressor
-from matplotlib.ticker import FuncFormatter, MaxNLocator
-from sklearn.model_selection import train_test_split
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-
-# Uzyskaj obiekt engine połączenia z bazy danych
-engine = get_db_engine()
-
-# Wykonaj zapytanie SQL, aby pobrać dane z tabeli importUkraine.data
-query = "SELECT * FROM import_ukraine.data"
-
-# Wczytaj dane do DataFrame
-df = pd.read_sql_query(query, engine)
-
-df = df.dropna(axis=1, how='all')
-
-# Convert 'miesiac' column to numerical format
-month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
-              'Lipiec': 7, 'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
-df['miesiac'] = df['miesiac'].map(month_dict)
-
-def millions(x, pos):
-    'The two args are the value and tick position'
-    return '%1.0f mln' % (x * 1e-9)  # Change the scale factor to 1e-9
-
-formatter = FuncFormatter(millions)
-
-import numpy as np
-
-def predict_sum_for_years(start_year, start_month, end_year, model_type='Linear'):
-    global df
-    predictions = {}
-
-    for year in range(start_year, end_year + 1):
-        # Filter data up to current year
-        df_filtered = df[df['rok'] <= year]
-
-        # Convert 'Wartosc' column to numeric
-        df_filtered.loc[:, 'Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
-
-        # Group by year and month and calculate sum
-        grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
-
-        # Prepare data for regression
-        X = grouped[['rok', 'miesiac']]
-        y = grouped['Wartosc']
-
-        # Split the data into training and test sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
-
-        # Fit regression model
-        if model_type == 'Linear':
-            model = LinearRegression()
-        elif model_type == 'DecisionTree':
-            model = DecisionTreeRegressor(random_state=42)
-        elif model_type == 'RandomForest':
-            model = RandomForestRegressor(random_state=42)
-        elif model_type == 'KNeighbors':
-            model = KNeighborsRegressor()
-        else:
-            raise ValueError(f"Invalid model_type: {model_type}")
-        model.fit(X_train, y_train)
-
-        # Predict on test data
-        y_pred = model.predict(X_test)
-
-        # Evaluate the model
-        mae = mean_absolute_error(y_test, y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        rmse = np.sqrt(mse)
-        r2 = r2_score(y_test, y_pred)
-
-        # Make prediction for each month of each year
-        month = start_month if year == start_year else 1
-        while year < end_year or (year == end_year and month <= 12):
-            prediction_data = pd.DataFrame([[year, month]], columns=['rok', 'miesiac'])
-            prediction = model.predict(prediction_data)
-
-            # Add random noise to prediction
-            noise = np.random.normal(0, 1)
-            prediction = prediction + noise
-
-            predictions[(year, month)] = prediction[0]
-            print(f"Przewidywana suma dla {month} miesiąca {year} roku: {prediction[0]}")
-            month += 1
-            if month > 12:
-                month = 1
-                year += 1
-
-        # Display results
-        print(f'Mean Absolute Error: {mae:.2f}')
-        print(f'Mean Squared Error: {mse:.2f}')
-        print(f'Root Mean Squared Error: {rmse:.2f}')
-        print(f'R2 Score: {r2:.2f}')
-
-        # Add predictions to the original dataframe for the next iteration
-        for (year, month), prediction in predictions.items():
-            df = pd.concat([df, pd.DataFrame({'rok': [year], 'miesiac': [month], 'Wartosc': [prediction]})],
-                           ignore_index=True)
-    return predictions, model, r2
-
-# Example usage of function
+import mplcursors
+from sklearn.metrics import r2_score
+from matplotlib.ticker import FuncFormatter
+from matplotlib.dates import num2date
+from backend.db_config import get_db_engine
 
 
-def plot_predictions(end_year, model_type='Linear'):
-    end_year = end_year - 1
-    start_year = 2023
-    start_month = 3
+def sarima_prediction(year=2023, end_year=2030):
+    # Get database engine connection object
+    engine = get_db_engine()
 
-    # Get predicted sum for each month of each year and regression model
-    predicted_sums, model, r2 = predict_sum_for_years(start_year, start_month, end_year, model_type)
+    # Execute SQL query to fetch data from importUkraine.data table
+    query = "SELECT * FROM import_ukraine.data"
 
-    # Prepare data for plot
-    df_filtered = df[df['rok'] <= end_year]
+    # Load data into DataFrame
+    df = pd.read_sql_query(query, engine)
+
+    # Remove columns with all missing values
+    df = df.dropna(axis=1, how='all')
+
+    # Convert 'miesiac' column to numeric format
+    month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
+                  'Lipiec': 7, 'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
+    df['miesiac'] = df['miesiac'].map(month_dict)
+
+    # Filter data to a specific year
+    df_filtered = df[df['rok'] <= year]
+
+    # Convert 'Wartosc' column to numeric type
     df_filtered['Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
-    grouped = df_filtered.groupby(['rok', 'miesiac']).sum().reset_index()
+
+    # Group data by year and month and calculate sum
+    grouped = df_filtered.groupby(['rok', 'miesiac'])['Wartosc'].sum().reset_index()
+
+    # Create date column in year-month format
+    grouped['date'] = grouped.apply(lambda row: f"{int(row['rok'])}-{int(row['miesiac']):02d}", axis=1)
+    grouped['date'] = pd.to_datetime(grouped['date'], format='%Y-%m')
+
+    # Set date column as index
+    grouped.set_index('date', inplace=True)
+
+    # Set frequency to monthly
+    grouped = grouped.asfreq('MS')
+
+    # Sort index
+    grouped.sort_index(inplace=True)
+
+    # SARIMA model parameters
+    order = (1, 1, 1)
+    seasonal_order = (1, 1, 1, 48)
+
+    # Train SARIMA model
+    model = SARIMAX(grouped['Wartosc'], order=order, seasonal_order=seasonal_order, trend='n', mle_regression=True)
+    model_fit = model.fit(disp=False)
+
+    # Forecast into the future (until end of end_year)
+    forecast_steps = (end_year - year) * 12 + (
+                12 - 3) + 2  # number of months from April 2023 to December end_year, +1 to include April 2023
+    forecast = model_fit.get_forecast(steps=forecast_steps)
+    forecast_index = pd.date_range(start='2023-03-01', periods=forecast_steps, freq='MS')
+    forecast_values = forecast.predicted_mean
+
+    # Calculate R-squared value
+    y_true = grouped['Wartosc'][-forecast_steps:]  # Assuming the last `forecast_steps` observations are available
+    y_pred = forecast_values[:len(y_true)]
+    r2 = r2_score(y_true, y_pred) if len(y_true) == len(y_pred) else np.nan
+
+    noise = np.random.normal(0.001, 300000000,
+                             len(forecast_values))  # random noise from normal distribution with mean 0 and standard deviation 100000
+    forecast_values_noisy = forecast_values + noise
+
+    # Create DataFrame with forecasts
+    forecast_df = pd.DataFrame({'date': forecast_index, 'forecast': forecast_values_noisy})
+    forecast_df.set_index('date', inplace=True)
+
+    return grouped, forecast_df, r2
+
+
+from matplotlib.ticker import FuncFormatter
+
+def plot_prediction(end_year):
+    # Generate the predictions
+    grouped, forecast_df, r2 = sarima_prediction(year=2023, end_year=end_year - 1)
 
     # Filter data for plot to only include data from 2020 to March 2023
     grouped_plot = grouped[
-        (grouped['rok'] >= 2020) & ((grouped['rok'] < 2023) | ((grouped['rok'] == 2023) & (grouped['miesiac'] <= 3)))]
-    fig, ax = plt.subplots(figsize=(25, 20))
+        (grouped.index.year >= 2020) & (
+                (grouped.index.year < 2023) | ((grouped.index.year == 2023) & (grouped.index.month <= 3)))]
 
+    # Prepare the plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+    line1, = ax.plot(grouped_plot.index, grouped_plot['Wartosc'], 'b-', label='Rzeczywiste dane')
+    line2, = ax.plot(forecast_df.index, forecast_df['forecast'], 'r-', label='Prognoza')
 
-
-    # Add regression line for the period from 2020 onwards
-    x_full = pd.DataFrame([[year, month] for year in range(2020, end_year + 1) for month in range(1, 13)],
-                          columns=['rok', 'miesiac'])
-    y_pred_full = model.predict(x_full)
-    line2, = ax.plot(x_full['rok'] + x_full['miesiac'] / 12, y_pred_full, color='orange', label='Linia regresji')
-
-    # Actual data
-    x = grouped_plot['rok'] + grouped_plot['miesiac'] / 12
-    y = grouped_plot['Wartosc']
-    line1, = ax.plot(x, y, 'b-', label='Rzeczywiste dane')
-
-    # Add predictions from March 2023 onwards
-    predicted_x = np.array([year + month / 12 for (year, month) in predicted_sums.keys()])
-    predicted_y = np.array(list(predicted_sums.values()))
-    line3, = ax.plot(predicted_x, predicted_y, 'r--', label='Przewidywane dane')
-
-    # Adjust plot
-    ax.set_xlabel('Rok', fontsize=12)
-    ax.set_ylabel('Suma wartości', rotation=90, labelpad=15, fontsize=12)
-    ax.set_title(f'Porównanie sumy wartości w danych latach z przewidywaniami: {model_type} regression', fontweight='bold')
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12), fancybox=True, shadow=True, ncol=5)
+    # Add a line connecting the real data and the forecast
+    ax.plot([grouped_plot.index[-1], forecast_df.index[0]],
+            [grouped_plot['Wartosc'].iloc[-1], forecast_df['forecast'].iloc[0]], 'r-')
+    # Customize the plot
+    ax.set_xlabel('Rok')
+    ax.set_ylabel('Wartość')
+    ax.set_title('Predykcja sumy wartości importu do roku {} (model SARIMAX)'.format(end_year), fontsize=14)
     ax.grid(True)
-    ax.xaxis.set_major_locator(MaxNLocator(integer=True))  # Set maximum number of x-axis labels
     plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.15)
 
-    # Move y-axis values to right side
-    ax.yaxis.tick_right()
-    ax.yaxis.set_label_position("left")
-
-    # Increase the size of the y-axis values
-    ax.tick_params(axis='y', labelsize=10)
-    ax.tick_params(axis='x', labelsize=10)
-
     # Format y-axis labels to display in millions
-    formatter = plt.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x / 1e6) + 'M')
+    def millions(x, pos):
+        'The two args are the value and tick position'
+        return '%1.0f mln' % (x * 1e-6)  # Change the scale factor to 1e-6
+
+    formatter = FuncFormatter(millions)
     ax.yaxis.set_major_formatter(formatter)
 
-    # Add R2 score to the plot
-    ax.text(0.5, -0.1, f'Dopasowanie modelu: {r2:.2f}', transform=ax.transAxes, fontsize=14,
-                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.5), ha='center')
+    # Function to find the nearest date in a sorted datetime index
+    def nearest_date(dates, target):
+        target_naive = target.replace(tzinfo=None)
+        return min(dates, key=lambda x: abs(x - target_naive))
 
     # Add interactive cursor
-    cursor = mplcursors.cursor([line1, line2, line3], hover=True)
-    cursor.connect("add",
-                   lambda sel: sel.annotation.set_text(f'Rok: {int(sel.target[0])}\nMiesiąc: {int((sel.target[0] % 1) * 12) + 1}\nWartość: {sel.target[1]:,.0f}'))
+    cursor = mplcursors.cursor([line1, line2], hover=True)
+    cursor.connect("add", lambda sel: sel.annotation.set_text(
+        f'Data: {nearest_date(grouped_plot.index if sel.artist == line1 else forecast_df.index, num2date(sel.target[0])).strftime("%Y-%m")}\nWartość: {sel.target[1]:,.0f}'))
 
-    #plt.show()  # Commented out to prevent displaying the plot
+    # Move the legend below the plot
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), shadow=True, ncol=2)
 
     return fig
-
-
-# Example usage of function
-#plot_predictions(2026, 'RandomForest')
-
-
