@@ -7,6 +7,7 @@ from sklearn.metrics import r2_score
 from matplotlib.ticker import FuncFormatter
 from matplotlib.dates import num2date
 from backend.db_config import get_db_engine
+from matplotlib.ticker import FuncFormatter
 
 
 def sarima_prediction(year=2023, end_year=2030):
@@ -80,7 +81,6 @@ def sarima_prediction(year=2023, end_year=2030):
     return grouped, forecast_df, r2
 
 
-from matplotlib.ticker import FuncFormatter
 
 def plot_prediction(end_year):
     # Generate the predictions
@@ -127,4 +127,8 @@ def plot_prediction(end_year):
     # Move the legend below the plot
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), shadow=True, ncol=2)
 
+    plt.show()
+
     return fig
+
+#plot_prediction(2026)

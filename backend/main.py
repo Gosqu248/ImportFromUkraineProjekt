@@ -42,14 +42,12 @@ def on_top_items_button_click():
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 def on_top_items_predictions_button_click():
-    method = selected_method_top.get()
     year = int(selected_end_year_top.get())
-    category_name = text_input.get()
 
     global canvas
     if 'canvas' in globals():
         canvas.get_tk_widget().destroy()
-    fig = xd3.plot_predictions(end_year=year, model_type=method, category_name=category_name)  # Wywołanie plot_top_items z fav_item_data
+    fig = xd3.plot_top_items_with_year(selected_year=year)  # Wywołanie plot_top_items z fav_item_data
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -92,27 +90,16 @@ top_items_button = tk.Button(root, text="Show top 5 items", command=on_top_items
 top_items_button.pack(pady=10)
 
 
-selected_method_top = tk.StringVar(root)
-selected_method_top.set("Linear")
-
-# Lista opcji do wyboru
-options_method = ["DecisionTree", "RandomForest", "KNeighbors", "Linear"]
 
 selected_end_year_top = tk.StringVar(root)
 selected_end_year_top.set("2026")
 
 options_end_year = ["2024", "2025", "2026", "2027", "2028", "2029", "2030"]
 
-# Dodanie rozwijanego menu wyboru dla metody predykcji
-option_method_menu = tk.OptionMenu(root, selected_method_top, *options_method)
-option_method_menu.pack(pady=10)
-
 # Dodanie rozwijanego menu wyboru dla roku końcowego
 option_end_year_menu = tk.OptionMenu(root, selected_end_year_top, *options_end_year)
 option_end_year_menu.pack(pady=10)
 
-text_input = tk.Entry(root)
-text_input.pack()
 
 # Dodanie przycisku
 button = tk.Button(root, text="Predict", command=on_top_items_predictions_button_click)
