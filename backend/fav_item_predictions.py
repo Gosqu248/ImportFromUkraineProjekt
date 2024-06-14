@@ -9,15 +9,14 @@ from matplotlib.dates import num2date
 from backend.db_config import get_db_engine
 
 # Zmiana w funkcji sarima_prediction: zwraca również dataframe z danymi do analizy kolumnowej
-def sarima_prediction(year=2023, end_year=2030):
+def sarima_prediction(end_year=2030):
+    year = 2023
     engine = get_db_engine()
     query = "SELECT * FROM import_ukraine.data"
     df = pd.read_sql_query(query, engine)
     df = df.dropna(axis=1, how='all')
 
-    month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
-                  'Lipiec': 7, 'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
-    df['miesiac'] = df['miesiac'].map(month_dict)
+    # Usunięcie month_dict i wszelkich operacji z nim związanych
 
     df_filtered = df[df['rok'] <= year]
 
@@ -29,7 +28,7 @@ def sarima_prediction(year=2023, end_year=2030):
     grouped.sort_index(inplace=True)
 
     order = (1, 0, 1)
-    seasonal_order = (1, 1, 1, 12)
+    seasonal_order = (1, 1, 1, 32)
 
     model = SARIMAX(grouped['Wartosc'], order=order, seasonal_order=seasonal_order, trend='n', mle_regression=True)
     model_fit = model.fit(disp=False)
@@ -39,8 +38,7 @@ def sarima_prediction(year=2023, end_year=2030):
     forecast_index = pd.date_range(start=str(year), periods=forecast_steps, freq='YS')
     forecast_values = forecast.predicted_mean
 
-    noise = np.random.normal(0.001, 300000000, len(forecast_values))
-    forecast_values_noisy = forecast_values + noise
+    forecast_values_noisy = forecast_values
 
     forecast_df = pd.DataFrame({'date': forecast_index, 'forecast': forecast_values_noisy})
     forecast_df.set_index('date', inplace=True)
@@ -71,7 +69,11 @@ def plot_top_items_with_year(selected_year=2024):
         f'{top_items.index[sel.target.index]}: {sel.target[1]:,.0f}'))
     return fig  # Zwróć obiekt figury
 
-# # Przykładowe użycie
+# Przykładowe użycie
 selected_year = 2026  # Wpisz dowolny rok
+fig = plot_top_items_with_year(selected_year)
+plt.show()
+
+selected_year = 2027  # Wpisz dowolny rok
 fig = plot_top_items_with_year(selected_year)
 plt.show()

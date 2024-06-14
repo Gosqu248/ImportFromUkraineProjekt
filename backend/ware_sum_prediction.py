@@ -54,7 +54,7 @@ def sarima_prediction(year, end_year, category_name):
     print(len(grouped))
 
     # SARIMA model parameters
-    order = (1, 1, 1)
+    order = (1, 0, 1)
     seasonal_order = (1, 1, 1, 32)  # Assuming seasonal period of 12 months
 
     # Train SARIMA model
