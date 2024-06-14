@@ -1,35 +1,37 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-import matplotlib.pyplot as plt
-import mplcursors
 from sklearn.metrics import r2_score
+import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
+import mplcursors
 from matplotlib.dates import num2date
+
 from backend.db_config import get_db_engine
-from matplotlib.ticker import FuncFormatter
 
+engine = get_db_engine()
 
-def sarima_prediction(year=2023, end_year=2030):
-    # Get database engine connection object
-    engine = get_db_engine()
-
-    # Execute SQL query to fetch data from importUkraine.data table
+def sarima_prediction(year, end_year, category_name):
+    # Load data from SQL table
     query = "SELECT * FROM import_ukraine.data"
-
-    # Load data into DataFrame
     df = pd.read_sql_query(query, engine)
 
     # Remove columns with all missing values
     df = df.dropna(axis=1, how='all')
 
     # Convert 'miesiac' column to numeric format
-    month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
-                  'Lipiec': 7, 'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
+    month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6, 'Lipiec': 7,
+                  'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
     df['miesiac'] = df['miesiac'].map(month_dict)
 
+    # Strip whitespace from 'SITC-R4.nazwa' column
+    df["SITC-R4.nazwa"] = df["SITC-R4.nazwa"].str.strip()
+
+    # Filter DataFrame for the given category
+    filtered_df = df[df["SITC-R4.nazwa"] == category_name]
+
     # Filter data to a specific year
-    df_filtered = df[df['rok'] <= year]
+    df_filtered = filtered_df[filtered_df['rok'] <= year]
 
     # Convert 'Wartosc' column to numeric type
     df_filtered['Wartosc'] = pd.to_numeric(df_filtered['Wartosc'], errors='coerce')
@@ -49,10 +51,11 @@ def sarima_prediction(year=2023, end_year=2030):
 
     # Sort index
     grouped.sort_index(inplace=True)
+    print(len(grouped))
 
     # SARIMA model parameters
     order = (1, 1, 1)
-    seasonal_order = (1, 1, 1, 32)
+    seasonal_order = (1, 1, 1, 32)  # Assuming seasonal period of 12 months
 
     # Train SARIMA model
     model = SARIMAX(grouped['Wartosc'], order=order, seasonal_order=seasonal_order, trend='n', mle_regression=True)
@@ -70,9 +73,10 @@ def sarima_prediction(year=2023, end_year=2030):
     y_pred = forecast_values[:len(y_true)]
     r2 = r2_score(y_true, y_pred) if len(y_true) == len(y_pred) else np.nan
 
+    # Add random noise to the forecast values
     noise = np.random.normal(1, 100000000,
                              len(forecast_values))  # random noise from normal distribution with mean 0 and standard deviation 100000
-    forecast_values_noisy = forecast_values + noise
+    forecast_values_noisy = forecast_values
 
     # Create DataFrame with forecasts
     forecast_df = pd.DataFrame({'date': forecast_index, 'forecast': forecast_values_noisy})
@@ -81,14 +85,12 @@ def sarima_prediction(year=2023, end_year=2030):
     return grouped, forecast_df, r2
 
 
-
-def plot_prediction(end_year):
+def plot_prediction(end_year, category_name="Ogółem"):
     # Generate the predictions
-    grouped, forecast_df, r2 = sarima_prediction(year=2023, end_year=end_year - 1)
+    grouped, forecast_df, r2 = sarima_prediction(year=2023, end_year=end_year - 1, category_name=category_name)
 
     # Filter data for plot to only include data from 2020 to March 2023
-    grouped_plot = grouped[
-        (grouped.index.year >= 2020) & (
+    grouped_plot = grouped[(grouped.index.year >= 2020) & (
                 (grouped.index.year < 2023) | ((grouped.index.year == 2023) & (grouped.index.month <= 3)))]
 
     # Prepare the plot
@@ -99,6 +101,7 @@ def plot_prediction(end_year):
     # Add a line connecting the real data and the forecast
     ax.plot([grouped_plot.index[-1], forecast_df.index[0]],
             [grouped_plot['Wartosc'].iloc[-1], forecast_df['forecast'].iloc[0]], 'r-')
+
     # Customize the plot
     ax.set_xlabel('Rok')
     ax.set_ylabel('Wartość')
@@ -109,8 +112,9 @@ def plot_prediction(end_year):
     # Format y-axis labels to display in millions
     def millions(x, pos):
         'The two args are the value and tick position'
-        return '%1.0f mln' % (x * 1e-6)  # Change the scale factor to 1e-6
+        return '%1.0f mln' % (x * 1e-6)
 
+    # Change the scale factor to 1e-6
     formatter = FuncFormatter(millions)
     ax.yaxis.set_major_formatter(formatter)
 
@@ -128,7 +132,8 @@ def plot_prediction(end_year):
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), shadow=True, ncol=2)
 
     plt.show()
-
     return fig
 
-plot_prediction(2030)
+
+# Example usage
+plot_prediction(2030, "Olej sojowy i jego frakcje")
