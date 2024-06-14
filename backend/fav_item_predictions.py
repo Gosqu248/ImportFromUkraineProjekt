@@ -48,15 +48,19 @@ def sarima_prediction(end_year=2030):
 # Dodanie nowej funkcji plot_top_items_with_year
 def plot_top_items_with_year(selected_year=2024):
     df_filtered = sarima_prediction(end_year=selected_year)[2]  # Pobranie df_filtered z wyników sarima_prediction
+    print(df_filtered[df_filtered["SITC-R4.nazwa"]== " Gaz ziemny w stanie gazowym"]["Wartosc"])
 
-    top_items = df_filtered.groupby("SITC-R4.nazwa")["Wartosc"].sum().nlargest(5)  # Top 5 przedmiotów
+    top_items = df_filtered.groupby("SITC-R4.nazwa")["Wartosc"].sum().sort_values(ascending=False).head(6)
+    top_items = top_items.iloc[1:]
+
+    print(top_items)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     bars = top_items.plot(kind="bar", color="skyblue", ax=ax)
     ax.set_title(f"Top 5 towarów pod względem wartości importu w roku {selected_year}")
     ax.set_ylabel("Wartość", fontsize=12)
     ax.set_xlabel("Nazwa towaru", fontsize=12)
-    formatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x / 1e6) + 'M')
+    formatter = FuncFormatter(lambda x, pos: '{:,.0f}'.format(x))
     ax.yaxis.set_major_formatter(formatter)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
 
