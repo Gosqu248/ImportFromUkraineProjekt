@@ -47,7 +47,7 @@ def sarima_prediction(end_year=2030):
 
 # Dodanie nowej funkcji plot_top_items_with_year
 def plot_top_items_with_year(selected_year=2024):
-    df_filtered = sarima_prediction(year=selected_year)[2]  # Pobranie df_filtered z wyników sarima_prediction
+    df_filtered = sarima_prediction(end_year=selected_year)[2]  # Pobranie df_filtered z wyników sarima_prediction
 
     top_items = df_filtered.groupby("SITC-R4.nazwa")["Wartosc"].sum().nlargest(5)  # Top 5 przedmiotów
 
