@@ -22,7 +22,7 @@ def on_button_click():
     global canvas
     if 'canvas' in globals():
         canvas.get_tk_widget().destroy()
-    fig = sum_prediction.plot_year_values_with_forecast(trend=12, months_prediction=60)  # Ensure this function returns a figure
+    fig = sum_prediction.plot_year_values_with_forecast(trend=30, months_prediction=60)  # Ensure this function returns a figure
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)

@@ -40,7 +40,8 @@ def plot_top_items(year=2020):
     grouped = df_year.groupby("SITC-R4.nazwa")["Wartosc"].sum()
 
     # Sortujemy dane malejąco i wybieramy 5 najczęściej występujących przedmiotów
-    top_items = grouped.sort_values(ascending=False).head(5)
+    top_items = grouped.sort_values(ascending=False).head(6)
+    top_items = top_items.iloc[1:]  # Usuń pierwszy element (największy)
 
     # Tworzymy wykres
     fig, ax = plt.subplots(figsize=(10, 6))  # Utwórz obiekt figury i osi
