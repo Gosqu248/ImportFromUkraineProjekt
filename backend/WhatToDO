@@ -1,0 +1,29 @@
+W main.py trzeba zmienić wygląd
+
+-Dodanie jakiegoś obrazu jako background
+-Dodanie Nazwy modelu gdzieś u góry (SARIMAX), żeby było widoczne z jakiego modelu korzystaliśmy
+
+-Tzreba usunąć lata z 1 predykcji (Sum prediciton) ma bycć tak:
+
+Months predictions:
+12 - 1 rok itp
+24
+36
+48
+60
+72
+84
+108
+120
+(wybór w listy tak jak jest teraz wybór roku ale jego trzeba usunąć albo zmienić na to)
+
+
+Trend ->    2 < trend < 120
+Ma być wpisywane (text input)
+
+
+
+- Trzeba zmodyfikować fav_item_predicitions, na podstawie predykcji z sum_prediction
+
+- Jakieś inne pomysły ?
+
