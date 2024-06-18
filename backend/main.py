@@ -4,8 +4,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import sum_prediction
 import sum_data
 import fav_item_data  # Importuj plik fav_item_data
-import fav_item_predictions
-from backend import xd, xd3
+from backend import xd, fav_items_all_year, xd2
 
 
 def on_actual_data_button_click():
@@ -19,12 +18,11 @@ def on_actual_data_button_click():
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 def on_button_click():
-    year = int(selected_end_year.get())
 
     global canvas
     if 'canvas' in globals():
         canvas.get_tk_widget().destroy()
-    fig = sum_prediction.plot_prediction(end_year=year)
+    fig = sum_prediction.plot_year_values_with_forecast(trend=12, months_prediction=60)  # Ensure this function returns a figure
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -42,12 +40,11 @@ def on_top_items_button_click():
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 def on_top_items_predictions_button_click():
-    year = int(selected_end_year_top.get())
 
     global canvas
     if 'canvas' in globals():
         canvas.get_tk_widget().destroy()
-    fig = xd3.plot_top_items_with_year(selected_year=year)  # Wywołanie plot_top_items z fav_item_data
+    fig = fav_items_all_year.plot_top_items_with_year()  # Wywołanie plot_top_items z fav_item_data
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -102,7 +99,7 @@ option_end_year_menu.pack(pady=10)
 
 
 # Dodanie przycisku
-button = tk.Button(root, text="Predict", command=on_top_items_predictions_button_click)
+button = tk.Button(root, text="Show top items from all year", command=on_top_items_predictions_button_click)
 button.pack(pady=10)
 
 
