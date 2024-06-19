@@ -8,6 +8,7 @@ from matplotlib.ticker import FuncFormatter
 from matplotlib.dates import num2date
 from backend.db_config import get_db_engine
 
+
 # Zmiana w funkcji sarima_prediction: zwraca również dataframe z danymi do analizy kolumnowej
 def sarima_prediction(end_year=2030):
     year = 2023
@@ -45,12 +46,15 @@ def sarima_prediction(end_year=2030):
 
     return grouped, forecast_df, df_filtered  # Dodanie df_filtered do zwracanych danych
 
+
 # Dodanie nowej funkcji plot_top_items_with_year
 def plot_top_items_with_year(selected_year=2024):
     df_filtered = sarima_prediction(end_year=selected_year)[2]  # Pobranie df_filtered z wyników sarima_prediction
-    print(df_filtered[df_filtered["SITC-R4.nazwa"]== " Gaz ziemny w stanie gazowym"]["Wartosc"])
+    print(df_filtered[df_filtered["SITC-R4.nazwa"] == " Gaz ziemny w stanie gazowym"]["Wartosc"])
 
-    top_items = df_filtered.groupby("SITC-R4.nazwa")["Wartosc"].sum().sort_values(ascending=False).head(6)
+    df_filtered = df_filtered[df_filtered["rok"] == selected_year]
+    top_items = df_filtered.groupby("SITC-R4.nazwa")["Wartosc"].sum().sort_values(
+        ascending=False).head(6)
     top_items = top_items.iloc[1:]
 
     print(top_items)
@@ -71,13 +75,5 @@ def plot_top_items_with_year(selected_year=2024):
     cursor = mplcursors.cursor(bars, hover=True)
     cursor.connect("add", lambda sel: sel.annotation.set_text(
         f'{top_items.index[sel.target.index]}: {sel.target[1]:,.0f}'))
-    return fig  # Zwróć obiekt figury
+    return fig
 
-# Przykładowe użycie
-selected_year = 2026  # Wpisz dowolny rok
-fig = plot_top_items_with_year(selected_year)
-plt.show()
-
-selected_year = 2027  # Wpisz dowolny rok
-fig = plot_top_items_with_year(selected_year)
-plt.show()

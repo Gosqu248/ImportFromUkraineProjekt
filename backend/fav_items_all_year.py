@@ -46,4 +46,3 @@ def plot_top_items_with_year():
         f'{top_items.index[sel.target.index]}: {sel.target[1]:,.0f}'))
     return fig
 
-plot_top_items_with_year()
