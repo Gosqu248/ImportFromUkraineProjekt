@@ -79,7 +79,7 @@ def on_top_items_all_time_button_click():
     canvas = FigureCanvasTkAgg(fig, master=root)
     fig.tight_layout()
     canvas.draw()
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+    canvas.get_tk_widget().grid(row=1, column=0, columnspan=3, sticky="nsew")
 
 # Validate input
 def validate_input(input):
