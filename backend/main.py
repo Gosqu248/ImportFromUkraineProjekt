@@ -79,7 +79,7 @@ def on_ware_sum_prediction_button(year=2010):
 
 # Top items button click
 def on_top_items_for_year_button_click():
-    options_year = [str(year) for year in range(2010, 2024)]
+    options_year = [float(year) for year in range(2010, 2024)]
 
     year = int(selected_year.get())
     if year not in options_year:

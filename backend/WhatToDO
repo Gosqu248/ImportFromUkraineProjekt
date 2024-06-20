@@ -1,20 +1,19 @@
 
 ----------------------------
-1. Dorobić ware_sum_predyction - predykcja dla pojedyńczego itemu
 
--trzeba przerobić predykcje na wzór sum_predictions
-- Dorobić UI do ware_sum
-(trzeba będzie wybrać z 10 najczęściej występujących itemów i zrobić liste)
-
-
-
-2. Przerobić xd.py (fav item prediction)
-
-
+1. Przerobić xd.py (fav item prediction)
 
 -Dodanie jakiegoś obrazu jako background
 -Dodanie Nazwy modelu gdzieś u góry (SARIMAX), żeby było widoczne z jakiego modelu korzystaliśmy
 
+--------------------------------
+
+od tąd
 
 
-- Jakieś inne pomysły ?
+1. Dodanie gdzieś nazwy (SARIMAX) - model z którego korzystamy
+
+2. Dodanie jakiegoś obrazu jako background
+
+
+3. Zmiana nazwy (2 i 3 frame)
