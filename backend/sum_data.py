@@ -53,11 +53,10 @@ def plot_year_values():
 
     plt.gca().yaxis.set_major_formatter(formatter)
 
-
-    # Add interactive cursor
     cursor = mplcursors.cursor(line, hover=True)
     cursor.connect("add", lambda sel: sel.annotation.set_text(
-        f'Rok: {int(sel.target[0])}\nMiesiąc: {int((sel.target[0] % 1) * 12) + 1}\nWartość: {sel.target[1]:.1f}'))
+        f'Rok: {int(sel.target[0])}\nMiesiąc: {int((sel.target[0] % 1) * 12) + 1}\nWartość: {int(sel.target[1]):,}'.replace(
+            ',', ' ')))
 
     # plt.show()  # Commented out to prevent displaying the plot
 
