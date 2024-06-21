@@ -9,6 +9,10 @@ import fav_item_data
 from backend import fav_items_all_year, fav_item_predictions
 import ware_sum_prediction
 
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+
 # Actual data button click
 def on_actual_data_button_click():
     fig = sum_data.plot_year_values()
@@ -134,7 +138,7 @@ def change_start_year():
 
 # App window settings
 root = tk.Tk()
-root.title("Prediction app")
+root.title("Prediction app - model SARIMAX")
 root.geometry("1200x1000")
 root.configure(bg='#2b2d30')
 validate_command = root.register(validate_input)
@@ -155,7 +159,7 @@ actual_data_button = tk.Button(frame1, text="Show", command=on_actual_data_butto
 actual_data_button.place(relx=0.5, rely=0.5, anchor='center')
 
 # Prediction settings
-label = tk.Label(frame2, text="Choose prediction settings!", bg='#2b2d30', fg='white', font=('Arial', 18))
+label = tk.Label(frame2, text="Show predicted data!", bg='#2b2d30', fg='white', font=('Arial', 18))
 label.pack(pady=10)
 
 label = tk.Label(frame2, text="Number of months for prediction", bg='#2b2d30', fg='white', font=('Arial', 10))
@@ -171,7 +175,7 @@ selected_trend.pack(pady=10)
 button = tk.Button(frame2, text="Predict", command=on_button_click, bg='#afb1b3', font=('Arial', 10, 'bold'))
 button.pack(pady=10)
 
-label = tk.Label(frame4, text="Choose name and prediction settings!", bg='#2b2d30', fg='white', font=('Arial', 18))
+label = tk.Label(frame4, text="Show predicted data by ware's name!", bg='#2b2d30', fg='white', font=('Arial', 18))
 label.pack(pady=10)
 
 label = tk.Label(frame4, text="Name", bg='#2b2d30', fg='white', font=('Arial', 10))
@@ -197,8 +201,10 @@ change_start_year_button.pack(pady=10)
 
 
 # Top items prediction settings
-label = tk.Label(frame3, text="Choose year to show top 5 items", bg='#2b2d30', fg='white', font=('Arial', 18))
+label = tk.Label(frame3, text="Show top 5 popular items", bg='#2b2d30', fg='white', font=('Arial', 18))
 label.pack(pady=10)
+label = tk.Label(frame3, text="Enter year", bg='#2b2d30', fg='white', font=('Arial', 10))
+label.pack()
 
 selected_year = tk.Entry(frame3, validate="key", validatecommand=(validate_command, '%P'))
 selected_year.pack(pady=10)
@@ -223,7 +229,18 @@ button_frame.grid_columnconfigure(2, weight=1)
 # Graph with top items predictions
 canvas = tk.Canvas(root)
 canvas.grid(row=1, column=0, columnspan=4, sticky="nsew")
-fig = figure(facecolor='#2b2d30')
+#fig = figure(facecolor='#2b2d30')
+
+#Background photo added
+fig = figure()
+ax = fig.add_subplot(111)
+image_path = '../assets/wykres.jpg'  # Zastąp swoją ścieżką do obrazu
+img = Image.open(image_path)
+img = img.resize((1200, 1000), Image.BICUBIC)  # Dostosuj rozmiar do potrzeb
+img = np.array(img)
+ax.imshow(img, aspect='auto')
+ax.axis('off')  # Ukryj osie
+
 canvas = FigureCanvasTkAgg(fig, master=root)
 fig.tight_layout()
 canvas.draw()
