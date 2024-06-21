@@ -70,6 +70,25 @@ def plot_year_values_with_forecast(year=2024):
         model = SARIMAX(grouped['Wartosc'], order=(1, 1, 1), seasonal_order=(1, 1, 1, 10))
         results = model.fit()
 
+        # Calculate R^2, MAE, RMSE, and MAPE
+        predicted = results.fittedvalues
+        mae = mean_absolute_error(grouped['Wartosc'], predicted)
+        rmse = np.sqrt(mean_squared_error(grouped['Wartosc'], predicted))
+        mape = mean_absolute_percentage_error(grouped['Wartosc'], predicted)
+        r2 = r2_score(grouped['Wartosc'], predicted)
+
+        # Format the MAE, RMSE, MAPE and R^2 values
+        formatted_mae = f'{mae:,.2f}'.replace(',', ' ')
+        formatted_rmse = f'{rmse:,.2f}'.replace(',', ' ')
+        formatted_mape = f'{mape:,.2f}'
+        formatted_r2 = f'{r2:,.2f}'
+
+        # Print the MAE, RMSE, MAPE and R^2 values
+        print(f"R2 score for {name}: {formatted_r2}")
+        print(f"MAE for {name}: {formatted_mae}")
+        print(f"RMSE for {name}: {formatted_rmse}")
+        print(f"MAPE for {name}: {formatted_mape}%")
+
         # Forecast next years_prediction years
         forecast = results.get_forecast(steps=years_prediction)
         forecast_index = np.arange(x.iloc[-1] + 1, x.iloc[-1] + years_prediction + 1)
