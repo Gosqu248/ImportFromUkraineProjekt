@@ -99,13 +99,13 @@ def on_top_items_for_year_button_click():
 
 # Top items predictions button click
 def on_top_items_predictions_button_click():
-    options_year = [str(year) for year in range(2024, 2035)]
+    options_year = [float(year) for year in range(2024, 2035)]
 
     year = int(selected_year.get())
     if year not in options_year:
         messagebox.showerror("Error", "Year should be in range 2024-2034 i order to make prediction")
         return
-    fig = fav_item_predictions.plot_top_items_with_year(selected_year=year)
+    fig = fav_item_predictions.plot_year_values_with_forecast(year=year)
     canvas = FigureCanvasTkAgg(fig, master=root)
     fig.tight_layout()
     canvas.draw()
