@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 
 
 # Interface implementation for datasource connection and data import
-data = pd.read_csv('data/Import.csv', header=0, encoding='latin1')
+data = pd.read_csv('Import.csv', header=0, encoding='latin1')
 
 data = data.apply(lambda x: x.str.encode('latin1').str.decode('utf-8') if x.dtype == "object" else x)
 

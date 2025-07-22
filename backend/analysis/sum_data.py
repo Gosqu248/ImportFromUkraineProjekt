@@ -1,10 +1,8 @@
 import pandas as pd
-from db_config import get_db_engine
+from backend.db.db_config import get_db_engine
 import mplcursors
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter, MaxNLocator
-
+from matplotlib.ticker import FuncFormatter
 
 # Uzyskaj obiekt engine połączenia z bazy danych
 engine = get_db_engine()

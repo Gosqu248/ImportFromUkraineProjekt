@@ -3,12 +3,10 @@ import textwrap
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import mplcursors
-from matplotlib.dates import num2date
-from backend.db_config import get_db_engine
+from backend.db.db_config import get_db_engine
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
 
 engine = get_db_engine()

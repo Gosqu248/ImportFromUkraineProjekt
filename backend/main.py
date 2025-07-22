@@ -3,13 +3,9 @@ from tkinter import messagebox, ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.pyplot import figure
 
-import sum_prediction
-import sum_data
-import fav_item_data
-from backend import fav_items_all_year, fav_item_predictions
-import ware_sum_prediction
+from backend.analysis import sum_data, fav_item_data, sum_prediction, fav_items_all_year, fav_item_predictions, \
+    ware_sum_prediction
 
-import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 

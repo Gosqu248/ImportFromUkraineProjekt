@@ -1,14 +1,13 @@
 import pandas as pd
+from backend.db.db_config import get_db_engine
+import mplcursors
 import numpy as np
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
-import mplcursors
-from matplotlib.dates import num2date
-from backend.db_config import get_db_engine
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
 
+# Uzyskaj obiekt engine połączenia z bazy danych
 engine = get_db_engine()
 
 def millions(x, pos):
@@ -17,24 +16,18 @@ def millions(x, pos):
 
 formatter = FuncFormatter(millions)
 
-def plot_year_values_with_forecast(name, trend=24, months_prediction=81, start_year=2010):
+def plot_year_values_with_forecast(trend=12, months_prediction=80):
     # Wykonaj zapytanie SQL, aby pobrać dane z tabeli importUkraine.data
     query = "SELECT * FROM import_ukraine.data"
 
     # Wczytaj dane do DataFrame
     df = pd.read_sql_query(query, engine)
-    df = df.dropna(axis=1, how='all')
 
     # Convert 'Wartosc' and 'miesiac' columns to numeric
     df['Wartosc'] = pd.to_numeric(df['Wartosc'], errors='coerce')
-
     month_dict = {'Styczeń': 1, 'Luty': 2, 'Marzec': 3, 'Kwiecień': 4, 'Maj': 5, 'Czerwiec': 6,
                   'Lipiec': 7, 'Sierpień': 8, 'Wrzesień': 9, 'Październik': 10, 'Listopad': 11, 'Grudzień': 12}
     df['miesiac'] = df['miesiac'].map(month_dict)
-
-    df['SITC-R4.nazwa'] = df['SITC-R4.nazwa'].str.strip()
-
-    df = df[df['SITC-R4.nazwa'] == name]
 
     # Group by year and month and calculate sum
     grouped = df.groupby(['rok', 'miesiac']).sum().reset_index()
@@ -52,7 +45,7 @@ def plot_year_values_with_forecast(name, trend=24, months_prediction=81, start_y
                                1 / 12)  # Forecast up to the end of months_prediction months
 
     # Filter the data to include only years 2020 and later for plotting
-    grouped_plot = grouped[grouped['rok'] >= start_year]
+    grouped_plot = grouped[grouped['rok'] >= 2020]
     x_plot = grouped_plot['rok'] + grouped_plot['miesiac'] / 12
 
     # Tworzenie wykresu
@@ -89,7 +82,7 @@ def plot_year_values_with_forecast(name, trend=24, months_prediction=81, start_y
     # Dostosowanie wykresu
     plt.xlabel('Rok', fontsize=12)
     plt.ylabel(xlabel_string, rotation=0, labelpad=70, fontsize=12)
-    plt.title(f'Prognoza sumy wartości dla ({name}) na kolejne {months_prediction} miesięcy (trend = {trend} miesiecy)')
+    plt.title(f'Prognoza sumy wartości na kolejne {months_prediction} miesięcy (trend = {trend} miesiecy)')
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), fancybox=True, shadow=True, ncol=5)
     plt.gca().yaxis.tick_right()
     plt.gca().yaxis.set_label_position("left")
@@ -112,6 +105,5 @@ def plot_year_values_with_forecast(name, trend=24, months_prediction=81, start_y
 
     return fig
 
-
-# Example usage
-#plot_year_values_with_forecast("Olej sojowy i jego frakcje")
+# Example usage of function
+#fig = plot_year_values_with_forecast(trend=30, months_prediction=81)

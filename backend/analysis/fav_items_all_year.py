@@ -1,12 +1,8 @@
-import numpy as np
 import pandas as pd
-from statsmodels.tsa.statespace.sarimax import SARIMAX
 import matplotlib.pyplot as plt
 import mplcursors
-from sklearn.metrics import r2_score
 from matplotlib.ticker import FuncFormatter
-from matplotlib.dates import num2date
-from backend.db_config import get_db_engine
+from backend.db.db_config import get_db_engine
 import textwrap
 
 def plot_top_items_with_year():

@@ -1,0 +1,10 @@
+pandas
+numpy
+statsmodels
+matplotlib
+mplcursors
+Pillow
+scikit-learn
+sqlalchemy
+psycopg2
+tk

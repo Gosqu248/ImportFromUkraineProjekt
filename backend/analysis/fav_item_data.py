@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from db_config import get_db_engine
-from matplotlib.ticker import FuncFormatter, MaxNLocator
+from backend.db.db_config import get_db_engine
+from matplotlib.ticker import FuncFormatter
 import textwrap
 import mplcursors
 
